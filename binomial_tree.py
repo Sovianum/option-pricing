@@ -2,10 +2,11 @@ import numpy as np
 
 
 class OptionReplicatingPortfolio:
-    def __init__(self, share_weight, bond_weight, stock_price):
+    def __init__(self, share_weight, bond_weight, stock_price, max_encountered_stock_price):
         self.share_weight = share_weight
         self.bond_weight = bond_weight
         self.stock_price = stock_price
+        self.max_encountered_stock_price = max_encountered_stock_price
 
     def get_price(self):
         return (self.share_weight + self.bond_weight) * self.stock_price
@@ -48,6 +49,11 @@ class BinomialTree:
             assert period < self.period_count
             return 2 ** period
 
+    class _PriceInfo:
+        def __init__(self, curr, max_encountered):
+            self.curr = curr
+            self.max_encountered = max_encountered
+
     def __init__(self, up_factor, down_factor, period_discount_rate, period_count, stock_price, option):
         self.up_factor = up_factor
         self.down_factor = down_factor
@@ -60,18 +66,19 @@ class BinomialTree:
         replicating_portfolios = {}
         stock_price_tree = self._get_stock_price_tree()
 
-        def calculate_replicating_portfolio(payout_up, payout_down, stock_price):
+        def calculate_replicating_portfolio(payout_up, payout_down, stock_price, max_encountered_stock_price):
             share_weight = (payout_up - payout_down) / (self.up_factor - self.down_factor) / stock_price
             bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / (1 + self.period_discount_rate)
-            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price)
+            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price, max_encountered_stock_price)
 
         def do_calculate(curr_level):
             if curr_level == self.period_count - 1:
                 for parent_index in range(2 ** curr_level):
                     portfolio = calculate_replicating_portfolio(
-                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2)]),
-                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2 + 1)]),
-                        stock_price_tree[(curr_level, parent_index)],
+                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2)].curr),
+                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2 + 1)].curr),
+                        stock_price_tree[(curr_level, parent_index)].curr,
+                        stock_price_tree[(curr_level, parent_index)].max_encountered
                     )
 
                     replicating_portfolios[(curr_level, parent_index)] = portfolio
@@ -88,7 +95,8 @@ class BinomialTree:
                     replicating_portfolios[(curr_level, parent_index)] = calculate_replicating_portfolio(
                         payout_up,
                         payout_down,
-                        stock_price_tree[(curr_level, parent_index)],
+                        stock_price_tree[(curr_level, parent_index)].curr,
+                        stock_price_tree[(curr_level, parent_index)].max_encountered
                     )
 
         do_calculate(0)
@@ -133,13 +141,16 @@ class BinomialTree:
 
     def _get_stock_price_tree(self):
         result = {
-            (0, 0): self.stock_price
+            (0, 0): BinomialTree._PriceInfo(self.stock_price, self.stock_price)
         }
         for period_index in range(1, self.period_count + 1):
             for node_index in range(2 ** period_index):
                 parent_id = (period_index - 1, node_index // 2)
-                parent_price = result[parent_id]
+                price_data = result[parent_id]
                 price_factor = self.up_factor if node_index % 2 == 0 else self.down_factor
-                result[(period_index, node_index)] = parent_price * price_factor
+                result[(period_index, node_index)] = BinomialTree._PriceInfo(
+                    price_data.curr * price_factor,
+                    max(price_data.curr, price_data.max_encountered)
+                )
 
         return result
