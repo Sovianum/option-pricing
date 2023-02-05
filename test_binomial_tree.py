@@ -58,7 +58,6 @@ class TestBinomialTree(unittest.TestCase):
         portfolio = portfolio_tree.get_root()
         self.assertAlmostEqual(2 / 3, portfolio.share_weight, delta=1e-9)
         self.assertAlmostEqual(-2 / 9, portfolio.bond_weight, delta=1e-9)
-        self.assertAlmostEqual(4 / 9, portfolio.get_norm_price(), delta=1e-9)
         self.assertAlmostEqual(4 / 9 * 100, portfolio.get_price(), delta=1e-9)
 
 

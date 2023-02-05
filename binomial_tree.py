@@ -7,9 +7,6 @@ class OptionReplicatingPortfolio:
         self.bond_weight = bond_weight
         self.stock_price = stock_price
 
-    def get_norm_price(self):
-        return self.share_weight + self.bond_weight
-
     def get_price(self):
         return (self.share_weight + self.bond_weight) * self.stock_price
 
