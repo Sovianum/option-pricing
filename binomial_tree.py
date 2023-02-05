@@ -49,10 +49,10 @@ class BinomialTree:
         replicating_portfolios = {}
         stock_price_tree = self._get_stock_price_tree()
 
-        def calculate_replicating_portfolio(payout_up, payout_down, stock_price):
+        def calculate_replicating_portfolio(payout_up, payout_down, stock_price, is_terminal):
             share_weight = (payout_up - payout_down) / (self.up_factor - self.down_factor) / stock_price
             bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / (1 + self.period_discount_rate)
-            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price)
+            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price, is_terminal)
 
         def do_calculate(curr_level):
             if curr_level == self.period_count - 1:
@@ -60,7 +60,8 @@ class BinomialTree:
                     portfolio = calculate_replicating_portfolio(
                         self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2)]),
                         self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2 + 1)]),
-                        stock_price_tree[(curr_level, parent_index)]
+                        stock_price_tree[(curr_level, parent_index)],
+                        is_terminal=True
                     )
 
                     replicating_portfolios[(curr_level, parent_index)] = portfolio
@@ -77,7 +78,8 @@ class BinomialTree:
                     replicating_portfolios[(curr_level, parent_index)] = calculate_replicating_portfolio(
                         payout_up,
                         payout_down,
-                        stock_price_tree[(curr_level, parent_index)]
+                        stock_price_tree[(curr_level, parent_index)],
+                        is_terminal=False
                     )
 
         do_calculate(0)
