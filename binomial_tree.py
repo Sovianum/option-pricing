@@ -11,6 +11,15 @@ class OptionReplicatingPortfolio:
         return (self.share_weight + self.bond_weight) * self.stock_price
 
 
+class OptionExecutionPortfolio:
+    def __init__(self, price, should_execute):
+        self.price = price
+        self.should_execute = should_execute
+
+    def get_price(self):
+        return self.price
+
+
 class BinomialTree:
     class PortfolioTree:
         def __init__(self, portfolio_map, period_count):
@@ -30,7 +39,7 @@ class BinomialTree:
             return self._portfolio_map[(level + 1, 2 * index)], self._portfolio_map[(level + 1, 2 * index + 1)]
 
         def has_children_portfolios(self, level, _):
-            return level < self.period_count
+            return level < self.period_count - 1
 
         def get_period_count(self):
             return self.period_count
@@ -90,7 +99,7 @@ class BinomialTree:
         portfolio_tree = self.calculate_replicating_portfolios_european()
         up_probability = self._get_risk_neutral_probability()
 
-        for period_index in range(portfolio_tree.get_period_count() - 1, -1, -1):
+        for period_index in reversed(range(portfolio_tree.get_period_count())):
             for node_index in range(portfolio_tree.get_node_count_at_period(period_index)):
                 portfolio = portfolio_tree.get_portfolio(period_index, node_index)
 
@@ -102,11 +111,22 @@ class BinomialTree:
                     portfolio_up, portfolio_down = portfolio_tree.get_children_portfolios(period_index, node_index)
                     up_price, down_price = portfolio_up.get_price(), portfolio_down.get_price()
 
-                continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / (1 + self.period_discount_rate)
+                continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / (
+                            1 + self.period_discount_rate)
                 execution_price = self.option.get_payout(portfolio.stock_price)
 
-                # if execution_price > continuation_price:
+                if execution_price > continuation_price:
+                    portfolio_tree.update_portfolio(
+                        period_index, node_index,
+                        OptionExecutionPortfolio(execution_price, should_execute=True)
+                    )
+                else:
+                    portfolio_tree.update_portfolio(
+                        period_index, node_index,
+                        OptionExecutionPortfolio(continuation_price, should_execute=False)
+                    )
 
+        return portfolio_tree
 
     def _get_risk_neutral_probability(self):
         return (1 + self.period_discount_rate - self.down_factor) / (self.up_factor - self.down_factor)
@@ -116,7 +136,7 @@ class BinomialTree:
             (0, 0): self.stock_price
         }
         for period_index in range(1, self.period_count + 1):
-            for node_index in range(2**period_index):
+            for node_index in range(2 ** period_index):
                 parent_id = (period_index - 1, node_index // 2)
                 parent_price = result[parent_id]
                 price_factor = self.up_factor if node_index % 2 == 0 else self.down_factor
