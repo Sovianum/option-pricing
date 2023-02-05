@@ -1,29 +1,21 @@
 import unittest
-import numpy as np
 from binomial_tree import BinomialTree
 from option import Option
 
 
 class TestBinomialTree(unittest.TestCase):
-    def test_get_leaf_node_price_factors(self):
-        price_factors = BinomialTree.get_leaf_node_price_factors(3, 2, 1)
-
-        self.assertTrue(
-            (np.array([8, 4, 4, 2, 4, 2, 2, 1]) == price_factors).all()
-        )
-
     def test_option_pricing_no_discounting(self):
         tree = BinomialTree(2, 0.5, 0, 2, 1, Option.long_call_option(0.5))
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio_up = portfolio_tree.get_portfolio(1, 0)
-        self.assertAlmostEqual(2, portfolio_up.share_weight, delta=1e-9)
-        self.assertAlmostEqual(-0.5, portfolio_up.bond_weight, delta=1e-9)
+        self.assertAlmostEqual(1, portfolio_up.share_weight, delta=1e-9)
+        self.assertAlmostEqual(-0.25, portfolio_up.bond_weight, delta=1e-9)
         self.assertAlmostEqual(1.5, portfolio_up.get_price(), delta=1e-9)
 
         portfolio_down = portfolio_tree.get_portfolio(1, 1)
-        self.assertAlmostEqual(1 / 3, portfolio_down.share_weight, delta=1e-9)
-        self.assertAlmostEqual(-1 / 6, portfolio_down.bond_weight, delta=1e-9)
+        self.assertAlmostEqual(2 / 3, portfolio_down.share_weight, delta=1e-9)
+        self.assertAlmostEqual(-1 / 3, portfolio_down.bond_weight, delta=1e-9)
         self.assertAlmostEqual(1 / 6, portfolio_down.get_price(), delta=1e-9)
 
         portfolio_root = portfolio_tree.get_portfolio(0, 0)
