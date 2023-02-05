@@ -47,20 +47,20 @@ class BinomialTree:
 
     def calculate_replicating_portfolios_european(self):
         replicating_portfolios = {}
-        relative_leaf_payouts = self._get_leaf_node_payouts() / self.stock_price
+        stock_price_tree = self._get_stock_price_tree()
 
-        def calculate_replicating_portfolio(rel_payout_up, rel_payout_down, is_terminal):
-            share_weight = (rel_payout_up - rel_payout_down) / (self.up_factor - self.down_factor)
-            bond_weight = (rel_payout_up - share_weight * self.up_factor) / (1 + self.period_discount_rate)
-            return OptionReplicatingPortfolio(share_weight, bond_weight, self.stock_price, is_terminal)
+        def calculate_replicating_portfolio(payout_up, payout_down, stock_price):
+            share_weight = (payout_up - payout_down) / (self.up_factor - self.down_factor) / stock_price
+            bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / (1 + self.period_discount_rate)
+            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price)
 
         def do_calculate(curr_level):
             if curr_level == self.period_count - 1:
                 for parent_index in range(2 ** curr_level):
                     portfolio = calculate_replicating_portfolio(
-                        relative_leaf_payouts[parent_index * 2],
-                        relative_leaf_payouts[parent_index * 2 + 1],
-                        True
+                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2)]),
+                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2 + 1)]),
+                        stock_price_tree[(curr_level, parent_index)]
                     )
 
                     replicating_portfolios[(curr_level, parent_index)] = portfolio
@@ -75,9 +75,9 @@ class BinomialTree:
                     payout_up, payout_down = self.option.get_payout(price_up), self.option.get_payout(price_down)
 
                     replicating_portfolios[(curr_level, parent_index)] = calculate_replicating_portfolio(
-                        payout_up / self.stock_price,
-                        payout_down / self.stock_price,
-                        False
+                        payout_up,
+                        payout_down,
+                        stock_price_tree[(curr_level, parent_index)]
                     )
 
         do_calculate(0)
@@ -103,20 +103,15 @@ class BinomialTree:
     def _get_risk_neutral_probability(self):
         return (1 + self.period_discount_rate - self.down_factor) / (self.up_factor - self.down_factor)
 
-    def _get_leaf_node_payouts(self):
-        leaf_node_prices = self.stock_price * BinomialTree.get_leaf_node_price_factors(
-            self.period_count, self.up_factor, self.down_factor
-        )
-        return np.array(list(map(self.option.get_payout, leaf_node_prices)))
+    def _get_stock_price_tree(self):
+        result = {
+            (0, 0): self.stock_price
+        }
+        for period_index in range(1, self.period_count + 1):
+            for node_index in range(2**period_index):
+                parent_id = (period_index - 1, node_index // 2)
+                parent_price = result[parent_id]
+                price_factor = self.up_factor if node_index % 2 == 0 else self.down_factor
+                result[(period_index, node_index)] = parent_price * price_factor
 
-    @staticmethod
-    def get_leaf_node_price_factors(period_count, up_factor, down_factor):
-        period_factors = []
-        indices = np.array(range(2 ** period_count))
-
-        for period_index in range(period_count):
-            down_mask = (indices >> period_index) % 2
-
-            period_factors.append(down_factor * down_mask + up_factor * (down_mask ^ 1))
-
-        return np.prod(np.array([period_factors]), axis=1)[0]
+        return result
