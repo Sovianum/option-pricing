@@ -14,7 +14,7 @@ class TestBinomialTree(unittest.TestCase):
 
     def test_option_pricing_no_discounting(self):
         tree = BinomialTree(2, 0.5, 0, 2, 1, Option.long_call_option(0.5))
-        portfolio_tree = tree.calculate_replicating_portfolios()
+        portfolio_tree = tree.calculate_replicating_portfolios_european()
 
         portfolio_up = portfolio_tree.get_portfolio(1, 0)
         self.assertAlmostEqual(2, portfolio_up.share_weight, delta=1e-9)
@@ -33,7 +33,7 @@ class TestBinomialTree(unittest.TestCase):
 
     def test_stock_price_scaling(self):
         tree = BinomialTree(2, 0.5, 0, 1, 100, Option.long_call_option(100))
-        portfolio_tree = tree.calculate_replicating_portfolios()
+        portfolio_tree = tree.calculate_replicating_portfolios_european()
 
         portfolio = portfolio_tree.get_root()
         self.assertAlmostEqual(2 / 3, portfolio.share_weight, delta=1e-9)
@@ -43,7 +43,7 @@ class TestBinomialTree(unittest.TestCase):
 
     def test_discounting_factor(self):
         tree = BinomialTree(2, 0.5, 0.5, 1, 100, Option.long_call_option(100))
-        portfolio_tree = tree.calculate_replicating_portfolios()
+        portfolio_tree = tree.calculate_replicating_portfolios_european()
 
         portfolio = portfolio_tree.get_root()
         self.assertAlmostEqual(2 / 3, portfolio.share_weight, delta=1e-9)
