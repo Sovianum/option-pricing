@@ -11,7 +11,7 @@ class OptionReplicatingPortfolio:
         return self.share_weight + self.bond_weight
 
     def get_price(self):
-        return self.share_weight + self.bond_weight * self.stock_price
+        return (self.share_weight + self.bond_weight) * self.stock_price
 
 
 class BinomialTree:
