@@ -39,5 +39,6 @@ class TestCRR(unittest.TestCase):
         self.assertAlmostEqual(1, crr.get_down_factor(), delta=1e-9)
         self.assertAlmostEqual(2, crr.get_discount_rate(), delta=1e-9)
 
+
 if __name__ == '__main__':
     unittest.main()
