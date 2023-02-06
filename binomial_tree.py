@@ -1,12 +1,11 @@
-import numpy as np
+from option import PriceInfo
 
 
 class OptionReplicatingPortfolio:
-    def __init__(self, share_weight, bond_weight, stock_price, max_encountered_stock_price):
+    def __init__(self, share_weight, bond_weight, stock_price):
         self.share_weight = share_weight
         self.bond_weight = bond_weight
         self.stock_price = stock_price
-        self.max_encountered_stock_price = max_encountered_stock_price
 
     def get_price(self):
         return (self.share_weight + self.bond_weight) * self.stock_price
@@ -23,14 +22,18 @@ class OptionExecutionPortfolio:
 
 class BinomialTree:
     class PortfolioTree:
-        def __init__(self, portfolio_map, period_count):
+        def __init__(self, portfolio_map, stock_price_map, period_count):
             self._portfolio_map = portfolio_map
+            self._stock_price_map = stock_price_map
             self.period_count = period_count
+
+        def get_stock_price_data(self, level, index):
+            return self._stock_price_map[(level, index)]
 
         def update_portfolio(self, level, index, portfolio):
             self._portfolio_map[(level, index)] = portfolio
 
-        def get_root(self):
+        def get_root_portfolio(self):
             return self.get_portfolio(0, 0)
 
         def get_portfolio(self, level, index):
@@ -66,19 +69,27 @@ class BinomialTree:
         replicating_portfolios = {}
         stock_price_tree = self._get_stock_price_tree()
 
-        def calculate_replicating_portfolio(payout_up, payout_down, stock_price, max_encountered_stock_price):
+        def calculate_replicating_portfolio(payout_up, payout_down, stock_price):
             share_weight = (payout_up - payout_down) / (self.up_factor - self.down_factor) / stock_price
             bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / (1 + self.period_discount_rate)
-            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price, max_encountered_stock_price)
+            return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price)
 
         def do_calculate(curr_level):
             if curr_level == self.period_count - 1:
                 for parent_index in range(2 ** curr_level):
+                    price_info_up = stock_price_tree[(curr_level + 1, parent_index * 2)]
+                    price_info_down = stock_price_tree[(curr_level + 1, parent_index * 2 + 1)]
+
                     portfolio = calculate_replicating_portfolio(
-                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2)].curr),
-                        self.option.get_payout(stock_price_tree[(curr_level + 1, parent_index * 2 + 1)].curr),
+                        self.option.get_payout(PriceInfo(
+                            price_info_up.curr,
+                            max_encountered=price_info_up.max_encountered
+                        )),
+                        self.option.get_payout(PriceInfo(
+                            price_info_down.curr,
+                            max_encountered=price_info_down.max_encountered
+                        )),
                         stock_price_tree[(curr_level, parent_index)].curr,
-                        stock_price_tree[(curr_level, parent_index)].max_encountered
                     )
 
                     replicating_portfolios[(curr_level, parent_index)] = portfolio
@@ -89,19 +100,27 @@ class BinomialTree:
                     portfolio_up, portfolio_down = replicating_portfolios[(curr_level + 1, parent_index * 2)], \
                                                    replicating_portfolios[(curr_level + 1, parent_index * 2 + 1)]
 
-                    price_up, price_down = portfolio_up.get_price(), portfolio_down.get_price()
-                    payout_up, payout_down = self.option.get_payout(price_up), self.option.get_payout(price_down)
+                    max_encountered_price = stock_price_tree[(curr_level, parent_index)].max_encountered
+
+                    payout_up = self.option.get_payout(PriceInfo(
+                        portfolio_up.get_price(),
+                        max_encountered_price
+                    ))
+
+                    payout_down = self.option.get_payout(PriceInfo(
+                        portfolio_down.get_price(),
+                        max_encountered_price
+                    ))
 
                     replicating_portfolios[(curr_level, parent_index)] = calculate_replicating_portfolio(
                         payout_up,
                         payout_down,
                         stock_price_tree[(curr_level, parent_index)].curr,
-                        stock_price_tree[(curr_level, parent_index)].max_encountered
                     )
 
         do_calculate(0)
 
-        return BinomialTree.PortfolioTree(replicating_portfolios, self.period_count)
+        return BinomialTree.PortfolioTree(replicating_portfolios, stock_price_tree, self.period_count)
 
     def calculate_replicating_portfolios_american(self):
         portfolio_tree = self.calculate_replicating_portfolios_european()
@@ -113,15 +132,27 @@ class BinomialTree:
 
                 up_price, down_price = None, None
                 if not portfolio_tree.has_children_portfolios(period_index, node_index):
-                    up_price = self.option.get_payout(portfolio.stock_price * self.up_factor)
-                    down_price = self.option.get_payout(portfolio.stock_price * self.down_factor)
+                    price_info_up = portfolio_tree.get_stock_price_data(period_index + 1, node_index * 2)
+                    price_info_down = portfolio_tree.get_stock_price_data(period_index + 1, node_index * 2 + 1)
+
+                    up_price = self.option.get_payout(PriceInfo(
+                        portfolio.stock_price * self.up_factor,
+                        price_info_up.max_encountered
+                    ))
+                    down_price = self.option.get_payout(PriceInfo(
+                        portfolio.stock_price * self.down_factor,
+                        price_info_down.max_encountered
+                    ))
                 else:
                     portfolio_up, portfolio_down = portfolio_tree.get_children_portfolios(period_index, node_index)
                     up_price, down_price = portfolio_up.get_price(), portfolio_down.get_price()
 
                 continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / (
                             1 + self.period_discount_rate)
-                execution_price = self.option.get_payout(portfolio.stock_price)
+                execution_price = self.option.get_payout(PriceInfo(
+                    portfolio.stock_price,
+                    portfolio_tree.get_stock_price_data(period_index, node_index).max_encountered
+                ))
 
                 if execution_price > continuation_price:
                     portfolio_tree.update_portfolio(

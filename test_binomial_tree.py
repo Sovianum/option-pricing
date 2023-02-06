@@ -40,7 +40,7 @@ class TestBinomialTree(unittest.TestCase):
         tree = BinomialTree(2, 0.5, 0, 1, 100, Option.long_call_option(100))
         portfolio_tree = tree.calculate_replicating_portfolios_european()
 
-        portfolio = portfolio_tree.get_root()
+        portfolio = portfolio_tree.get_root_portfolio()
         self.assertAlmostEqual(2 / 3, portfolio.share_weight, delta=1e-9)
         self.assertAlmostEqual(-1 / 3, portfolio.bond_weight, delta=1e-9)
         self.assertAlmostEqual(1 / 3 * 100, portfolio.get_price(), delta=1e-9)
@@ -49,7 +49,7 @@ class TestBinomialTree(unittest.TestCase):
         tree = BinomialTree(2, 0.5, 0.5, 1, 100, Option.long_call_option(100))
         portfolio_tree = tree.calculate_replicating_portfolios_european()
 
-        portfolio = portfolio_tree.get_root()
+        portfolio = portfolio_tree.get_root_portfolio()
         self.assertAlmostEqual(2 / 3, portfolio.share_weight, delta=1e-9)
         self.assertAlmostEqual(-2 / 9, portfolio.bond_weight, delta=1e-9)
         self.assertAlmostEqual(4 / 9 * 100, portfolio.get_price(), delta=1e-9)
