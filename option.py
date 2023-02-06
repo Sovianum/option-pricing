@@ -3,6 +3,7 @@ class PriceInfo:
         self.stock_price = stock_price
         self.max_encountered = max_encountered
 
+
 class Option:
     OPTION_TYPE_LONG_CALL = 1
     OPTION_TYPE_LONG_PUT = 2
