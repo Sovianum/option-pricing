@@ -1,6 +1,6 @@
 import unittest
 from binomial_tree import BinomialTree
-from option import Option
+from option import Option, BarrierOption
 
 
 class TestBinomialTree(unittest.TestCase):
@@ -35,6 +35,19 @@ class TestBinomialTree(unittest.TestCase):
 
         portfolio_root = portfolio_tree.get_portfolio(0, 0)
         self.assertAlmostEqual(0.5 * 0.5 + 0.5 * 10, portfolio_root.get_price(), delta=1e-9)
+
+    def test_option_pricing_no_discounting_barrier(self):  # very close to lecture example
+        tree = BinomialTree(1.1, 0.9, 0, 2, 100, BarrierOption(Option.long_put_option(100), 101))
+        portfolio_tree = tree.calculate_replicating_portfolios_european()
+
+        portfolio_up = portfolio_tree.get_portfolio(1, 0)
+        self.assertAlmostEqual(0.5, portfolio_up.get_price(), delta=1e-9)
+
+        portfolio_down = portfolio_tree.get_portfolio(1, 1)
+        self.assertAlmostEqual(0, portfolio_down.get_price(), delta=1e-9)
+
+        portfolio_root = portfolio_tree.get_portfolio(0, 0)
+        self.assertAlmostEqual(49.75, portfolio_root.get_price(), delta=1e-9)
 
     def test_stock_price_scaling_european(self):
         tree = BinomialTree(2, 0.5, 0, 1, 100, Option.long_call_option(100))
