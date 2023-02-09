@@ -1,7 +1,8 @@
 class PriceInfo:
-    def __init__(self, stock_price, max_encountered=None):
+    def __init__(self, stock_price, max_encountered, is_terminal_state):
         self.stock_price = stock_price
         self.max_encountered = max_encountered
+        self.is_terminal_state = is_terminal_state
 
 
 class Option:
@@ -51,7 +52,11 @@ class BarrierOption:
         self.barrier_price = barrier_price
 
     def get_payout(self, price_info: PriceInfo):
-        if price_info.max_encountered < self.barrier_price:
-            return 0
+        if price_info.is_terminal_state:
+            if price_info.max_encountered < self.barrier_price:
+                return 0
 
-        return self.option.get_payout(price_info)
+            return self.option.get_payout(price_info)
+        else:
+            # TODO take path into account
+            return self.option.get_payout(price_info)
