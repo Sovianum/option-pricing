@@ -52,11 +52,7 @@ class BarrierOption:
         self.barrier_price = barrier_price
 
     def get_payout(self, price_info: PriceInfo):
-        if price_info.is_terminal_state:
-            if price_info.max_encountered < self.barrier_price:
-                return 0
+        if price_info.max_encountered < self.barrier_price:
+            return 0
 
-            return self.option.get_payout(price_info)
-        else:
-            # TODO take path into account
-            return self.option.get_payout(price_info)
+        return self.option.get_payout(price_info)

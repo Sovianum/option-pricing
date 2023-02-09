@@ -20,6 +20,7 @@ class BinomialTreeEuropean:
     def calculate_replicating_portfolios(self):
         replicating_portfolios = {}
         stock_price_tree = self._get_stock_price_tree()
+        max_price_tree = self._calculate_reversed_max_encountered_price(stock_price_tree)
 
         def do_calculate(curr_level):
             if curr_level == self.period_count - 1:
@@ -32,7 +33,7 @@ class BinomialTreeEuropean:
 
                 for parent_index in range(2 ** curr_level):
                     replicating_portfolios[(curr_level, parent_index)] = self._calculate_non_terminal_portfolio(
-                        replicating_portfolios, stock_price_tree, curr_level, parent_index
+                        replicating_portfolios, stock_price_tree, max_price_tree, curr_level, parent_index
                     )
 
         do_calculate(0)
@@ -57,21 +58,22 @@ class BinomialTreeEuropean:
             stock_price_tree[(curr_level, parent_index)].curr,
         )
 
-    def _calculate_non_terminal_portfolio(self, replicating_portfolios, stock_price_tree, curr_level, parent_index):
-        portfolio_up = replicating_portfolios[(curr_level + 1, parent_index * 2)]
-        portfolio_down = replicating_portfolios[(curr_level + 1, parent_index * 2 + 1)]
+    def _calculate_non_terminal_portfolio(self, replicating_portfolios, stock_price_tree, max_price_tree, curr_level, parent_index):
+        key_up = (curr_level + 1, parent_index * 2)
+        key_down = (curr_level + 1, parent_index * 2 + 1)
 
-        max_encountered_price = stock_price_tree[(curr_level, parent_index)].max_encountered
+        portfolio_up = replicating_portfolios[key_up]
+        portfolio_down = replicating_portfolios[key_down]
 
         payout_up = self.option.get_payout(PriceInfo(
             portfolio_up.get_price(),
-            max_encountered_price,
+            max_price_tree[key_up],
             is_terminal_state=False,
         ))
 
         payout_down = self.option.get_payout(PriceInfo(
             portfolio_down.get_price(),
-            max_encountered_price,
+            max_price_tree[key_down],
             is_terminal_state=False
         ))
 
@@ -99,5 +101,20 @@ class BinomialTreeEuropean:
                     price_data.curr * price_factor,
                     max(price_data.curr, price_data.max_encountered)
                 )
+
+        return result
+
+    def _calculate_reversed_max_encountered_price(self, stock_price_map):
+        result = {}
+        for period in reversed(range(self.period_count+1)):
+            for index in range(2 ** period):
+                parent_key_key = (period, index)
+                up_child_key = (period + 1, index * 2)
+                down_child_key = (period + 1, index * 2 + 1)
+
+                if up_child_key in result:
+                    result[parent_key_key] = max(result[up_child_key], result[down_child_key])
+                elif parent_key_key in stock_price_map:
+                    result[parent_key_key] = stock_price_map[parent_key_key].max_encountered
 
         return result
