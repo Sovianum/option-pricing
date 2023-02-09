@@ -24,7 +24,26 @@ class TestBinomialTree(unittest.TestCase):
         self.assertAlmostEqual(-5 / 18, portfolio_root.bond_weight, delta=1e-9)
         self.assertAlmostEqual(11 / 18, portfolio_root.get_price(), delta=1e-9)
 
-    def test_option_pricing_no_discounting_american(self):  # very close to lecture example
+    def test_option_pricing_no_discounting_european_from_lecture(self):
+        tree = BinomialTreeEuropean(1.1, 0.9, 0.05, 2, 100, Option.long_call_option(100))
+        portfolio_tree = tree.calculate_replicating_portfolios()
+
+        portfolio_up = portfolio_tree.get_portfolio(1, 0)
+        self.assertAlmostEqual(0.955, portfolio_up.share_weight, delta=1e-2)
+        self.assertAlmostEqual(-90/110, portfolio_up.bond_weight, delta=1e-9)
+        self.assertAlmostEqual(15, portfolio_up.get_price(), delta=1e-9)
+
+        portfolio_down = portfolio_tree.get_portfolio(1, 1)
+        self.assertAlmostEqual(0, portfolio_down.share_weight, delta=1e-9)
+        self.assertAlmostEqual(0, portfolio_down.bond_weight, delta=1e-9)
+        self.assertAlmostEqual(0, portfolio_down.get_price(), delta=1e-9)
+
+        portfolio_root = portfolio_tree.get_portfolio(0, 0)
+        self.assertAlmostEqual(0.75, portfolio_root.share_weight, delta=1e-9)
+        self.assertAlmostEqual(-64.28/100, portfolio_root.bond_weight, delta=1e-2)
+        self.assertAlmostEqual(10.72, portfolio_root.get_price(), delta=1e-2)
+
+    def test_option_pricing_no_discounting_american(self):
         tree = BinomialTreeAmerican(BinomialTreeEuropean(1.1, 0.9, 0.05, 2, 100, Option.long_put_option(100)))
         portfolio_tree = tree.calculate_replicating_portfolios()
 
@@ -37,7 +56,7 @@ class TestBinomialTree(unittest.TestCase):
         portfolio_root = portfolio_tree.get_portfolio(0, 0)
         self.assertAlmostEqual(2.551, portfolio_root.get_price(), delta=1e-3)
 
-    def test_option_pricing_no_discounting_barrier(self):  # very close to lecture example
+    def test_option_pricing_no_discounting_barrier(self):
         tree = BinomialTreeEuropean(1.1, 0.9, 0, 2, 100, BarrierOption(Option.long_put_option(100), 101))
         portfolio_tree = tree.calculate_replicating_portfolios()
 
