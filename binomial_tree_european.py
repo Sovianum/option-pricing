@@ -78,9 +78,6 @@ class BinomialTreeEuropean:
 
         return PortfolioTree(replicating_portfolios, stock_price_tree, self.period_count)
 
-    def _get_risk_neutral_probability(self):
-        return (1 + self.period_discount_rate - self.down_factor) / (self.up_factor - self.down_factor)
-
     def _get_stock_price_tree(self):
         result = {
             (0, 0): BinomialTreeEuropean._PriceInfo(self.stock_price, self.stock_price)
