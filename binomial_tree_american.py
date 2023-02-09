@@ -24,7 +24,7 @@ class BinomialTreeAmerican:
                 up_price, down_price = self._get_price_pair(portfolio_tree, period_index, node_index)
 
                 continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / (
-                            1 + self.period_discount_rate)
+                        1 + self.period_discount_rate)
                 execution_price = self.option.get_payout(PriceInfo(
                     portfolio.stock_price,
                     portfolio_tree.get_stock_price_data(period_index, node_index).max_encountered,
@@ -58,12 +58,12 @@ class BinomialTreeAmerican:
 
         up_price = self.option.get_payout(PriceInfo(
             portfolio.stock_price * self.up_factor,
-            price_info_up.max_encountered,
+            price_info_up.max_encountered,  # TODO use reversed price tree
             is_terminal_state=True
         ))
         down_price = self.option.get_payout(PriceInfo(
             portfolio.stock_price * self.down_factor,
-            price_info_down.max_encountered,
+            price_info_down.max_encountered,  # TODO use reversed price tree
             is_terminal_state=True
         ))
 
