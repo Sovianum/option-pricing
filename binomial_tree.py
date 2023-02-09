@@ -134,24 +134,7 @@ class BinomialTree:
             for node_index in range(portfolio_tree.get_node_count_at_period(period_index)):
                 portfolio = portfolio_tree.get_portfolio(period_index, node_index)
 
-                up_price, down_price = None, None
-                if not portfolio_tree.has_children_portfolios(period_index, node_index):
-                    price_info_up = portfolio_tree.get_stock_price_data(period_index + 1, node_index * 2)
-                    price_info_down = portfolio_tree.get_stock_price_data(period_index + 1, node_index * 2 + 1)
-
-                    up_price = self.option.get_payout(PriceInfo(
-                        portfolio.stock_price * self.up_factor,
-                        price_info_up.max_encountered,
-                        is_terminal_state=True
-                    ))
-                    down_price = self.option.get_payout(PriceInfo(
-                        portfolio.stock_price * self.down_factor,
-                        price_info_down.max_encountered,
-                        is_terminal_state=True
-                    ))
-                else:
-                    portfolio_up, portfolio_down = portfolio_tree.get_children_portfolios(period_index, node_index)
-                    up_price, down_price = portfolio_up.get_price(), portfolio_down.get_price()
+                up_price, down_price = self._get_price_pair(portfolio_tree, period_index, node_index)
 
                 continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / (
                             1 + self.period_discount_rate)
@@ -173,6 +156,35 @@ class BinomialTree:
                     )
 
         return portfolio_tree
+
+    def _get_price_pair(self, portfolio_tree, period_index, node_index):
+        if not portfolio_tree.has_children_portfolios(period_index, node_index):
+            return self._get_terminal_price_pair(portfolio_tree, period_index, node_index)
+        else:
+            return self._get_non_terminal_price_pair(portfolio_tree, period_index, node_index)
+
+    def _get_terminal_price_pair(self, portfolio_tree, period_index, node_index):
+        portfolio = portfolio_tree.get_portfolio(period_index, node_index)
+
+        price_info_up = portfolio_tree.get_stock_price_data(period_index + 1, node_index * 2)
+        price_info_down = portfolio_tree.get_stock_price_data(period_index + 1, node_index * 2 + 1)
+
+        up_price = self.option.get_payout(PriceInfo(
+            portfolio.stock_price * self.up_factor,
+            price_info_up.max_encountered,
+            is_terminal_state=True
+        ))
+        down_price = self.option.get_payout(PriceInfo(
+            portfolio.stock_price * self.down_factor,
+            price_info_down.max_encountered,
+            is_terminal_state=True
+        ))
+
+        return up_price, down_price
+
+    def _get_non_terminal_price_pair(self, portfolio_tree, period_index, node_index):
+        portfolio_up, portfolio_down = portfolio_tree.get_children_portfolios(period_index, node_index)
+        return portfolio_up.get_price(), portfolio_down.get_price()
 
     def _get_risk_neutral_probability(self):
         return (1 + self.period_discount_rate - self.down_factor) / (self.up_factor - self.down_factor)
