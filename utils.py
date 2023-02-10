@@ -6,4 +6,8 @@ def get_risk_neutral_probability(discount_rate, up_factor, down_factor):
 
 
 def get_discount_rate(continuous_interest_rate, period_length):
-    return np.exp(continuous_interest_rate * period_length) - 1
+    return np.log(1 + continuous_interest_rate) * period_length
+
+
+def get_discount_factor(discount_rate):
+    return np.exp(discount_rate)

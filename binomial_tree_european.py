@@ -1,6 +1,7 @@
 from option import PriceInfo
 from portfolio_tree import PortfolioTree
 from portfolios import OptionReplicatingPortfolio
+from utils import get_discount_factor
 
 
 class BinomialTreeEuropean:
@@ -84,9 +85,10 @@ class BinomialTreeEuropean:
                 parent_id = (period_index - 1, node_index // 2)
                 price_data = result[parent_id]
                 price_factor = self.up_factor if node_index % 2 == 0 else self.down_factor
+                curr_price = price_data.curr * price_factor
                 result[(period_index, node_index)] = BinomialTreeEuropean._PriceInfo(
-                    price_data.curr * price_factor,
-                    max(price_data.curr, price_data.max_encountered)
+                    curr_price,
+                    max(curr_price, price_data.max_encountered)
                 )
 
         return result
