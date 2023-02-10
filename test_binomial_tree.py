@@ -6,7 +6,7 @@ from option import Option, BarrierOption
 
 class TestBinomialTree(unittest.TestCase):
     def test_option_pricing_no_discounting_european(self):
-        tree = BinomialTreeEuropean(2, 0.5, 0, 2, 1, Option.long_call_option(0.5))
+        tree = BinomialTreeEuropean(2, 0.5, 0, 2, 1, Option.long_call_option(0.5), lambda r: 1 + r)
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio_up = portfolio_tree.get_portfolio(1, 0)
@@ -25,7 +25,7 @@ class TestBinomialTree(unittest.TestCase):
         self.assertAlmostEqual(11 / 18, portfolio_root.get_price(), delta=1e-9)
 
     def test_option_pricing_no_discounting_european_from_lecture(self):
-        tree = BinomialTreeEuropean(1.1, 0.9, 0.05, 2, 100, Option.long_call_option(100))
+        tree = BinomialTreeEuropean(1.1, 0.9, 0.05, 2, 100, Option.long_call_option(100), lambda r: 1 + r)
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio_up = portfolio_tree.get_portfolio(1, 0)
@@ -43,8 +43,8 @@ class TestBinomialTree(unittest.TestCase):
         self.assertAlmostEqual(-64.28/100, portfolio_root.bond_weight, delta=1e-2)
         self.assertAlmostEqual(10.72, portfolio_root.get_price(), delta=1e-2)
 
-    def test_option_pricing_no_discounting_american(self):
-        tree = BinomialTreeAmerican(BinomialTreeEuropean(1.1, 0.9, 0.05, 2, 100, Option.long_put_option(100)))
+    def test_option_pricing_with_discounting_american(self):
+        tree = BinomialTreeAmerican(BinomialTreeEuropean(1.1, 0.9, 0.05, 2, 100, Option.long_put_option(100), lambda r: 1 + r))
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio_up = portfolio_tree.get_portfolio(1, 0)
@@ -57,7 +57,7 @@ class TestBinomialTree(unittest.TestCase):
         self.assertAlmostEqual(2.551, portfolio_root.get_price(), delta=1e-3)
 
     def test_option_pricing_no_discounting_barrier(self):
-        tree = BinomialTreeEuropean(1.1, 0.9, 0, 2, 100, BarrierOption(Option.long_put_option(100), 101))
+        tree = BinomialTreeEuropean(1.1, 0.9, 0, 2, 100, BarrierOption(Option.long_put_option(100), 101), lambda r: 1 + r)
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio_up = portfolio_tree.get_portfolio(1, 0)
@@ -70,7 +70,7 @@ class TestBinomialTree(unittest.TestCase):
         self.assertAlmostEqual(0.25, portfolio_root.get_price(), delta=1e-9)
 
     def test_stock_price_scaling_european(self):
-        tree = BinomialTreeEuropean(2, 0.5, 0, 1, 100, Option.long_call_option(100))
+        tree = BinomialTreeEuropean(2, 0.5, 0, 1, 100, Option.long_call_option(100), lambda r: 1 + r)
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio = portfolio_tree.get_root_portfolio()
@@ -79,7 +79,7 @@ class TestBinomialTree(unittest.TestCase):
         self.assertAlmostEqual(1 / 3 * 100, portfolio.get_price(), delta=1e-9)
 
     def test_discounting_factor_european(self):
-        tree = BinomialTreeEuropean(2, 0.5, 0.5, 1, 100, Option.long_call_option(100))
+        tree = BinomialTreeEuropean(2, 0.5, 0.5, 1, 100, Option.long_call_option(100), lambda r: 1 + r)
         portfolio_tree = tree.calculate_replicating_portfolios()
 
         portfolio = portfolio_tree.get_root_portfolio()

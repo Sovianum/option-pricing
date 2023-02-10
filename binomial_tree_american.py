@@ -12,10 +12,11 @@ class BinomialTreeAmerican:
         self.period_count = european_tree.period_count
         self.stock_price = european_tree.stock_price
         self.option = european_tree.option
+        self.discount_rate_factor_gen = european_tree.discount_rate_factor_gen
 
     def calculate_replicating_portfolios(self):
         portfolio_tree = self.european_tree.calculate_replicating_portfolios()
-        up_probability = get_risk_neutral_probability(self.period_discount_rate, self.up_factor, self.down_factor)
+        up_probability = get_risk_neutral_probability(self.discount_rate_factor_gen(self.period_discount_rate), self.up_factor, self.down_factor)
 
         for period_index in reversed(range(portfolio_tree.get_period_count())):
             for node_index in range(portfolio_tree.get_node_count_at_period(period_index)):
@@ -23,12 +24,10 @@ class BinomialTreeAmerican:
 
                 up_price, down_price = self._get_price_pair(portfolio_tree, period_index, node_index)
 
-                continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / (
-                        1 + self.period_discount_rate)
+                continuation_price = (up_price * up_probability + down_price * (1 - up_probability)) / self.discount_rate_factor_gen(self.period_discount_rate)
                 execution_price = self.option.get_payout(PriceInfo(
                     portfolio.stock_price,
                     portfolio_tree.get_stock_price_data(period_index, node_index).max_encountered,
-                    is_terminal_state=True
                 ))
 
                 if execution_price > continuation_price:
@@ -58,13 +57,11 @@ class BinomialTreeAmerican:
 
         up_price = self.option.get_payout(PriceInfo(
             portfolio.stock_price * self.up_factor,
-            price_info_up.max_encountered,  # TODO use reversed price tree
-            is_terminal_state=True
+            price_info_up.max_encountered,
         ))
         down_price = self.option.get_payout(PriceInfo(
             portfolio.stock_price * self.down_factor,
-            price_info_down.max_encountered,  # TODO use reversed price tree
-            is_terminal_state=True
+            price_info_down.max_encountered,
         ))
 
         return up_price, down_price

@@ -1,8 +1,7 @@
 class PriceInfo:
-    def __init__(self, stock_price, max_encountered, is_terminal_state):
+    def __init__(self, stock_price, max_encountered):
         self.stock_price = stock_price
         self.max_encountered = max_encountered
-        self.is_terminal_state = is_terminal_state
 
 
 class Option:

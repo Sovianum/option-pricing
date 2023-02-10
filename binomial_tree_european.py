@@ -1,6 +1,7 @@
 from option import PriceInfo
 from portfolio_tree import PortfolioTree
 from portfolios import OptionReplicatingPortfolio
+from utils import get_discount_factor
 
 
 class BinomialTreeEuropean:
@@ -9,13 +10,15 @@ class BinomialTreeEuropean:
             self.curr = curr
             self.max_encountered = max_encountered
 
-    def __init__(self, up_factor, down_factor, period_discount_rate, period_count, stock_price, option):
+    def __init__(self, up_factor, down_factor, period_discount_rate, period_count, stock_price, option,
+                 discount_rate_factor_gen=get_discount_factor):
         self.up_factor = up_factor
         self.down_factor = down_factor
         self.period_discount_rate = period_discount_rate
         self.period_count = period_count
         self.stock_price = stock_price
         self.option = option
+        self.discount_rate_factor_gen = discount_rate_factor_gen
 
     def calculate_replicating_portfolios(self):
         replicating_portfolios = {}
@@ -47,12 +50,10 @@ class BinomialTreeEuropean:
             self.option.get_payout(PriceInfo(
                 price_info_up.curr,
                 max_encountered=price_info_up.max_encountered,
-                is_terminal_state=True
             )),
             self.option.get_payout(PriceInfo(
                 price_info_down.curr,
                 max_encountered=price_info_down.max_encountered,
-                is_terminal_state=True
             )),
             stock_price_tree[(curr_level, parent_index)].curr,
         )
@@ -72,7 +73,7 @@ class BinomialTreeEuropean:
 
     def _calculate_replicating_portfolio(self, payout_up, payout_down, stock_price):
         share_weight = (payout_up - payout_down) / (self.up_factor - self.down_factor) / stock_price
-        bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / (1 + self.period_discount_rate)
+        bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / self.discount_rate_factor_gen(self.period_discount_rate)
         return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price)
 
     def _get_stock_price_tree(self):
@@ -84,9 +85,10 @@ class BinomialTreeEuropean:
                 parent_id = (period_index - 1, node_index // 2)
                 price_data = result[parent_id]
                 price_factor = self.up_factor if node_index % 2 == 0 else self.down_factor
+                curr_price = price_data.curr * price_factor
                 result[(period_index, node_index)] = BinomialTreeEuropean._PriceInfo(
-                    price_data.curr * price_factor,
-                    max(price_data.curr, price_data.max_encountered)
+                    curr_price,
+                    max(curr_price, price_data.max_encountered)
                 )
 
         return result
