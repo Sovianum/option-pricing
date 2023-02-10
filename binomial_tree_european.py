@@ -73,7 +73,7 @@ class BinomialTreeEuropean:
 
     def _calculate_replicating_portfolio(self, payout_up, payout_down, stock_price):
         share_weight = (payout_up - payout_down) / (self.up_factor - self.down_factor) / stock_price
-        bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / (1 + self.period_discount_rate)
+        bond_weight = (payout_up / stock_price - share_weight * self.up_factor) / get_discount_factor(self.period_discount_rate)
         return OptionReplicatingPortfolio(share_weight, bond_weight, stock_price)
 
     def _get_stock_price_tree(self):
