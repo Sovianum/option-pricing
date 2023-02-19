@@ -48,14 +48,6 @@ class TestBinomialTree(unittest.TestCase):
             "black_scholes_price": [get_black_scholes_price() for _ in period_counts]
         }))
 
-        # for period_count in period_counts:
-        #     print("periods: %d\ttree_price: %.5f\tblack_and_scholes_price: %.5f" % (
-        #             period_count,
-        #             get_tree_price(period_count),
-        #             get_black_scholes_price()
-        #         )
-        #     )
-
 
 if __name__ == '__main__':
     unittest.main()
