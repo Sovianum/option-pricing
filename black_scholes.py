@@ -40,67 +40,6 @@ class Option:
 
         return bond_term - stock_term
 
-    def delta_call(self, parameters, step=1e-3):
-        return self._delta(parameters, self.get_call_price, step)
-
-    def delta_put(self, parameters, step=1e-3):
-        return self._delta(parameters, self.get_put_price, step)
-
-    def gamma_call(self, parameters, step=1e-3):
-        return self._gamma(parameters, self.get_call_price, step)
-
-    def gamma_put(self, parameters, step=1e-3):
-        return self._gamma(parameters, self.get_put_price, step)
-
-    def theta_call(self, parameters, step=1e-3):
-        return self._theta(parameters, self.get_call_price, step)
-
-    def theta_put(self, parameters, step=1e-3):
-        return self._theta(parameters, self.get_put_price, step)
-
-    def vega_call(self, parameters, step=1e-3):
-        return self._vega(parameters, self.get_call_price, step)
-
-    def vega_put(self, parameters, step=1e-3):
-        return self._vega(parameters, self.get_put_price, step)
-
-    def rho_call(self, parameters, step=1e-3):
-        return self._rho(parameters, self.get_call_price, step)
-
-    def rho_put(self, parameters, step=1e-3):
-        return self._rho(parameters, self.get_put_price, step)
-
-    def _delta(self, parameters, price_callback, step):
-        left_price = price_callback(parameters.copy(stock_price_offset=-step))
-        right_price = price_callback(parameters.copy(stock_price_offset=step))
-
-        return (right_price - left_price) / (2 * step)
-
-    def _gamma(self, parameters, price_callback, step):
-        left_price = price_callback(parameters.copy(stock_price_offset=-step))
-        center_price = price_callback(parameters.copy())
-        right_price = price_callback(parameters.copy(stock_price_offset=step))
-
-        return (right_price - 2 * center_price + left_price) / (4 * step**2)
-
-    def _theta(self, parameters, price_callback, step):
-        left_price = price_callback(parameters.copy(maturity_time_offset=-step))
-        right_price = price_callback(parameters.copy(maturity_time_offset=step))
-
-        return (right_price - left_price) / (2 * step)
-
-    def _vega(self, parameters, price_callback, step):
-        left_price = price_callback(parameters.copy(volatility_offset=-step))
-        right_price = price_callback(parameters.copy(volatility_offset=step))
-
-        return (right_price - left_price) / (2 * step)
-
-    def _rho(self, parameters, price_callback, step):
-        left_price = price_callback(parameters.copy(risk_free_rate_offset=-step))
-        right_price = price_callback(parameters.copy(risk_free_rate_offset=step))
-
-        return (right_price - left_price) / (2 * step)
-
     def _d2(self, parameters):
         return self._d1(parameters) - parameters.volatility * np.sqrt(parameters.maturity_time)
 
