@@ -64,6 +64,91 @@ class TestBinomialTree(unittest.TestCase):
         print(price_diff_df.to_latex())
         print(price_diff_df["diff"].sum())
 
+    def test_calculate_price_neutral_portfolio(self):
+        non_neutral_portfolio = self.original_book.copy()
+        non_neutral_portfolio.maturity += self.delta_maturity
+        non_neutral_portfolio = self.fill_book(
+            non_neutral_portfolio,
+            self.original_stock_price + self.delta_stock_price,
+            self.original_volatility + self.delta_volatility,
+        )
+
+        original_delta = sum(non_neutral_portfolio.delta * non_neutral_portfolio.amount)
+        original_gamma = sum(non_neutral_portfolio.gamma * non_neutral_portfolio.amount)
+
+        neutralization_portfolio = self.fill_book(
+            pd.DataFrame({
+                "amount": [1, 1],
+                "type": ["call", "put"],
+                "strike_price": [235, self.original_stock_price + self.delta_stock_price],
+                "maturity": np.array([4, 3]) / 12
+            }),
+            self.original_stock_price + self.delta_stock_price,
+            self.original_volatility + self.delta_volatility
+        )
+
+        parameter_matrix = np.array([
+            neutralization_portfolio.delta,
+            neutralization_portfolio.gamma
+        ])
+
+        non_neutral_parameters = np.array([
+            original_delta,
+            original_gamma
+        ])
+
+        neutralization_weights = np.matmul(
+            np.linalg.inv(parameter_matrix),
+            -non_neutral_parameters
+        )
+
+        # now we recalculate neutralization portfolio using given weights
+
+        neutralization_portfolio = self.fill_book(
+            pd.DataFrame({
+                "amount": neutralization_weights,
+                "type": ["call", "put"],
+                "strike_price": [235, self.original_stock_price + self.delta_stock_price],
+                "maturity": np.array([4, 3]) / 12
+            }),
+            self.original_stock_price + self.delta_stock_price,
+            self.original_volatility + self.delta_volatility
+        )
+
+        non_neutral_price = sum(non_neutral_portfolio.total_prices)
+
+        hedging_cost = neutralization_portfolio.total_prices.sum()
+
+        neutralized_portfolio = pd.concat([non_neutral_portfolio, neutralization_portfolio]).reset_index().drop(columns=["index"])
+
+        def get_total_parameter(name):
+            return [(neutralized_portfolio[name] * neutralized_portfolio.amount).sum()]
+
+        neutralized_portfolio_parameters = pd.DataFrame({
+            "delta": get_total_parameter("delta"),
+            "gamma": get_total_parameter("gamma"),
+            "theta": get_total_parameter("theta"),
+            "vega": get_total_parameter("vega"),
+            "rho": get_total_parameter("rho")
+        })
+
+        print("parameter matrix")
+        print(parameter_matrix)
+        print("non neutral parameters")
+        print(non_neutral_parameters)
+        print("neutralization weights")
+        print(neutralization_weights)
+        print("hedging cost")
+        print(hedging_cost)
+        print("non neutral price")
+        print(non_neutral_price)
+        print("neutralization prices")
+        print(neutralization_portfolio.prices)
+        print("hedging cost")
+        print(hedging_cost)
+        print("neutralized portfolio parameters")
+        print(neutralized_portfolio_parameters.round().to_latex())
+
     def fill_book(self, book, stock_price, volatility):
         bs_option = black_scholes.Option()
 
