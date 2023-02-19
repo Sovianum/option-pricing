@@ -13,11 +13,8 @@ class TestBinomialTree(unittest.TestCase):
     original_volatility = 0.3
 
     delta_maturity = -1 / 365
-    # delta_maturity = 0
     delta_stock_price = 6
-    # delta_stock_price = 2
     delta_volatility = 100e-4
-    # delta_volatility = 0
 
     original_book = pd.DataFrame({
         "amount": [34_000, 37_000, 20_000],
@@ -46,30 +43,6 @@ class TestBinomialTree(unittest.TestCase):
         print(price_diff_df.round().to_latex())
         print(price_diff_df.round().sum())
         print(price_diff_df.round().sum().sum())
-
-    # def test_non_linearity(self):
-    #     yesterday_book = self.original_book.copy()
-    #     yesterday_book = self.fill_book(yesterday_book, self.original_stock_price, self.original_volatility)
-    #
-    #     today_book = self.original_book.copy()
-    #     today_book = self.fill_book(
-    #         today_book,
-    #         self.original_stock_price + self.delta_stock_price,
-    #         self.original_volatility
-    #     )
-    #
-    #     linear_diff_1 = yesterday_book.delta * self.delta_stock_price
-    #     # linear_diff_2 = 0.5 * yesterday_book.gamma * self.delta_stock_price**2
-    #     linear_diff_2 = 0
-    #
-    #     diff_df = pd.DataFrame({
-    #         "non_linear_diff": today_book.prices - yesterday_book.prices,
-    #         "linear_diff": linear_diff_1 + linear_diff_2
-    #     })
-    #     diff_df["err_percent"] = (diff_df.non_linear_diff - diff_df.linear_diff) / diff_df.non_linear_diff * 100
-    #
-    #     print(diff_df)
-    #     print(diff_df.sum())
 
     def test_calculate_pnl_non_linear(self):
         yesterday_book = self.original_book
